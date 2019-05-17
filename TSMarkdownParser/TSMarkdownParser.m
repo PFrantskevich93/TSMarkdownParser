@@ -246,9 +246,9 @@ static NSString *const TSMarkdownImageRegex         = @"\\!\\[[^\\[]*?\\]\\(\\S*
 static NSString *const TSMarkdownLinkRegex          = @"\\[[^\\[]*?\\]\\([^\\)]*\\)";
 
 // inline enclosed regex
-static NSString *const TSMarkdownMonospaceRegex     = @"\\s|^(`+)(\\s*.*?[^`]\\s*)(\\1)(?!`)(\\s+|$)";
-static NSString *const TSMarkdownStrongRegex        = @"\\s|^(\\*\\*|__)(.+?)(\\1)(\\s+|$)";
-static NSString *const TSMarkdownEmRegex            = @"\\s|^(\\*|_)(.+?)(\\1)(\\s+|$)";
+static NSString *const TSMarkdownMonospaceRegex     = @"(\\s+|^)(`+)(\\s*.*?[^`]\\s*)(\\2)(?!`)(\\s+|$)";
+static NSString *const TSMarkdownStrongRegex        = @"(\\s+|^)(\\*\\*|__)(.+?)(\\2)(\\s+|$)";
+static NSString *const TSMarkdownEmRegex            = @"(\\s+|^)(\\*|_)(.+?)(\\2)(\\s+|$)";
 
 #pragma mark escaping parsing
 
@@ -429,28 +429,36 @@ static NSString *const TSMarkdownEmRegex            = @"\\s|^(\\*|_)(.+?)(\\1)(\
 #pragma mark inline parsing
 
 // pattern matching should be three parts: (leadingMD)(string)(trailingMD)
-- (void)addEnclosedParsingWithPattern:(NSString *)pattern formattingBlock:(TSMarkdownParserFormattingBlock)formattingBlock {
+- (void)addEnclosedParsingWithPattern:(NSString *)pattern formattingBlock:(TSMarkdownParserFormattingBlock)formattingBlock inlineRegex: (BOOL) inlineRegex{
     NSRegularExpression *parsing = [NSRegularExpression regularExpressionWithPattern:pattern options:(NSRegularExpressionOptions)0 error:nil];
     [self addParsingRuleWithRegularExpression:parsing block:^(NSTextCheckingResult *match, NSMutableAttributedString *attributedString) {
         // deleting trailing markdown
-        [attributedString deleteCharactersInRange:[match rangeAtIndex:3]];
-        // formatting string (may alter the length)
-        formattingBlock(attributedString, [match rangeAtIndex:2]);
-        // deleting leading markdown
-        [attributedString deleteCharactersInRange:[match rangeAtIndex:1]];
+        if (inlineRegex == YES) {
+            [attributedString deleteCharactersInRange:[match rangeAtIndex:4]];
+            // formatting string (may alter the length)
+            formattingBlock(attributedString, [match rangeAtIndex:3]);
+            // deleting leading markdown
+            [attributedString deleteCharactersInRange:[match rangeAtIndex:2]];
+        } else {
+            [attributedString deleteCharactersInRange:[match rangeAtIndex:3]];
+            // formatting string (may alter the length)
+            formattingBlock(attributedString, [match rangeAtIndex:2]);
+            // deleting leading markdown
+            [attributedString deleteCharactersInRange:[match rangeAtIndex:1]];
+        }
     }];
 }
 
 - (void)addMonospacedParsingWithFormattingBlock:(TSMarkdownParserFormattingBlock)formattingBlock {
-    [self addEnclosedParsingWithPattern:TSMarkdownMonospaceRegex formattingBlock:formattingBlock];
+    [self addEnclosedParsingWithPattern:TSMarkdownMonospaceRegex formattingBlock:formattingBlock inlineRegex:YES];
 }
 
 - (void)addStrongParsingWithFormattingBlock:(void(^)(NSMutableAttributedString *attributedString, NSRange range))formattingBlock {
-    [self addEnclosedParsingWithPattern:TSMarkdownStrongRegex formattingBlock:formattingBlock];
+    [self addEnclosedParsingWithPattern:TSMarkdownStrongRegex formattingBlock:formattingBlock inlineRegex:YES];
 }
 
 - (void)addEmphasisParsingWithFormattingBlock:(TSMarkdownParserFormattingBlock)formattingBlock {
-    [self addEnclosedParsingWithPattern:TSMarkdownEmRegex formattingBlock:formattingBlock];
+    [self addEnclosedParsingWithPattern:TSMarkdownEmRegex formattingBlock:formattingBlock inlineRegex:YES];
 }
 
 #pragma mark link detection
@@ -499,7 +507,7 @@ static NSString *const TSMarkdownEmRegex            = @"\\s|^(\\*|_)(.+?)(\\1)(\
         
         // formatting string (may alter the length)
         formattingBlock(attributedString, NSMakeRange(range.location, unescapedString.length));
-    }];
+    } inlineRegex:NO];
 }
 
 - (void)addUnescapingParsing {
