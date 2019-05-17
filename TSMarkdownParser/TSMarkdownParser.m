@@ -246,9 +246,9 @@ static NSString *const TSMarkdownImageRegex         = @"\\!\\[[^\\[]*?\\]\\(\\S*
 static NSString *const TSMarkdownLinkRegex          = @"\\[[^\\[]*?\\]\\([^\\)]*\\)";
 
 // inline enclosed regex
-static NSString *const TSMarkdownMonospaceRegex     = @"(`+)(\\s*.*?[^`]\\s*)(\\1)(?!`)";
-static NSString *const TSMarkdownStrongRegex        = @"(\\*\\*|__)(.+?)(\\1)";
-static NSString *const TSMarkdownEmRegex            = @"(\\*|_)(.+?)(\\1)";
+static NSString *const TSMarkdownMonospaceRegex     = @"\\s|^(`+)(\\s*.*?[^`]\\s*)(\\1)(?!`)(\\s+|$)";
+static NSString *const TSMarkdownStrongRegex        = @"\\s|^(\\*\\*|__)(.+?)(\\1)(\\s+|$)";
+static NSString *const TSMarkdownEmRegex            = @"\\s|^(\\*|_)(.+?)(\\1)(\\s+|$)";
 
 #pragma mark escaping parsing
 
